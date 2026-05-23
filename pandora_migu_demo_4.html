@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>潘多拉 × 咪咕音乐 · AI意图分发 Demo</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: #F5F6F7;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.page-header h1 {
+  font-size: 22px;
+  font-weight: 500;
+  color: #1A1F2E;
+  margin-bottom: 6px;
+}
+.page-header p {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.demo-wrap {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  max-width: 740px;
+  width: 100%;
+}
+
+.phone {
+  width: 260px;
+  min-width: 260px;
+  background: #fff;
+  border: 1px solid #DEE0E3;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+.phone-status {
+  background: #1A1F2E;
+  padding: 12px 20px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.phone-status .time { color: #fff; font-size: 13px; font-weight: 500; }
+.phone-status .icons { display: flex; gap: 4px; align-items: center; }
+.phone-status .icons i { color: #fff; font-size: 13px; }
+
+.phone-screen { background: #0D1117; min-height: 420px; }
+
+.chat-header {
+  background: #1A1F2E;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #5B4FCF, #0F6E56);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; font-weight: 500; flex-shrink: 0;
+}
+.chat-header-info .name { font-size: 13px; color: #fff; font-weight: 500; }
+.chat-header-info .status { font-size: 11px; color: #4CD964; }
+
+.chat-messages {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 300px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.chat-messages::-webkit-scrollbar { width: 3px; }
+.chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.msg {
+  max-width: 85%;
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  animation: fadeIn 0.3s ease;
+}
+.msg.user { align-self: flex-end; background: #5B4FCF; color: #EEEDFE; border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; background: #1E2A3A; color: #C8D0DC; border-bottom-left-radius: 4px; }
+.msg.thinking { background: #1E2A3A; align-self: flex-start; }
+
+.dots span {
+  display: inline-block; width: 6px; height: 6px;
+  background: #5B8DB8; border-radius: 50%; margin-right: 3px;
+  animation: bounce 1s infinite;
+}
+.dots span:nth-child(2) { animation-delay: 0.15s; }
+.dots span:nth-child(3) { animation-delay: 0.3s; }
+
+.music-card {
+  background: #1E2A3A; border-radius: 12px; padding: 10px;
+  align-self: flex-start; max-width: 90%;
+  border: 1px solid rgba(255,255,255,0.08);
+  animation: fadeIn 0.3s ease;
+}
+.music-card-inner { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.album-art {
+  width: 44px; height: 44px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.song-info .title { font-size: 12px; font-weight: 500; color: #E8EDF2; }
+.song-info .artist { font-size: 11px; color: #7A8A9A; }
+.song-info .source { font-size: 10px; color: #1D9E75; margin-top: 2px; }
+.progress-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+.progress-fill { height: 100%; background: #5B4FCF; border-radius: 2px; width: 0%; transition: width 0.1s; }
+.player-controls { display: flex; justify-content: center; align-items: center; gap: 16px; }
+.player-controls i { color: #C8D0DC; font-size: 16px; cursor: pointer; }
+.play-btn {
+  width: 28px; height: 28px; border-radius: 50%; background: #5B4FCF;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; border: none;
+}
+.play-btn i { font-size: 14px; color: #fff; }
+
+.chat-input {
+  background: #1A1F2E; padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.chat-input input {
+  flex: 1; background: rgba(255,255,255,0.06); border: none;
+  border-radius: 20px; padding: 6px 12px; font-size: 12px;
+  color: #C8D0DC; outline: none;
+}
+.chat-input input::placeholder { color: #4A5568; }
+.chat-input input:disabled { opacity: 0.5; }
+.send-btn {
+  width: 28px; height: 28px; border-radius: 50%; background: #5B4FCF;
+  border: none; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.send-btn i { color: #fff; font-size: 14px; }
+.phone-home { background: #1A1F2E; height: 4px; border-radius: 2px; width: 80px; margin: 8px auto; }
+
+.side-panel { flex: 1; }
+.side-panel h3 { font-size: 16px; font-weight: 500; color: #1A1F2E; margin-bottom: 12px; }
+
+.step-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.step-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid #E2E8F0; background: #fff;
+  transition: all 0.3s; opacity: 0.45;
+}
+.step-item.active { opacity: 1; border-color: #93C5FD; background: #EFF6FF; }
+.step-item.done { opacity: 1; border-color: #86EFAC; background: #F0FFF4; }
+.step-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 1px solid #E2E8F0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: #6B7280; flex-shrink: 0;
+}
+.step-item.active .step-num { background: #EFF6FF; border-color: #93C5FD; color: #1D4ED8; }
+.step-item.done .step-num { background: #F0FFF4; border-color: #86EFAC; color: #15803D; }
+.step-text .label { font-size: 13px; font-weight: 500; color: #1A1F2E; }
+.step-text .desc { font-size: 12px; color: #6B7280; margin-top: 2px; }
+
+.tag {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 6px; font-size: 11px; font-weight: 500;
+}
+.tag-sdk { background: #EFF6FF; color: #1D4ED8; }
+.tag-migu { background: #F0FFF4; color: #15803D; }
+
+.preset-btns { margin-bottom: 16px; }
+.preset-btns p { font-size: 12px; color: #6B7280; margin-bottom: 8px; }
+.preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.preset-btn {
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid #E2E8F0; background: #fff;
+  font-size: 12px; color: #1A1F2E; cursor: pointer;
+  text-align: left; transition: all 0.2s; line-height: 1.4;
+}
+.preset-btn:hover { background: #F5F6F7; border-color: #CBD5E0; }
+.preset-btn i { font-size: 14px; color: #6B7280; margin-right: 4px; vertical-align: -2px; }
+
+.reset-btn {
+  width: 100%; padding: 8px; border-radius: 8px;
+  border: 1px solid #E2E8F0; background: #fff;
+  font-size: 13px; color: #6B7280; cursor: pointer; transition: all 0.2s;
+}
+.reset-btn:hover { background: #F5F6F7; }
+.reset-btn i { margin-right: 4px; vertical-align: -2px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+
+@media (max-width: 600px) {
+  .demo-wrap { flex-direction: column; align-items: center; }
+  .side-panel { width: 100%; max-width: 260px; }
+}
+</style>
+</head>
+<body>
+
+
+
+<div class="demo-wrap">
+  <div class="phone">
+    <div class="phone-status">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <i class="ti ti-wifi"></i>
+        <i class="ti ti-battery-2"></i>
+      </div>
+    </div>
+    <div class="phone-screen">
+      <div class="chat-header">
+        <div class="avatar">小跃</div>
+        <div class="chat-header-info">
+          <div class="name">小跃</div>
+          <div class="status">● 在线</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="messages">
+        <div class="msg bot">嗨～ 我是小跃，想听什么？跟我说就行 🎧</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="userInput" placeholder="和小跃说话..." />
+        <button class="send-btn" onclick="sendMsg()">
+          <i class="ti ti-send"></i>
+        </button>
+      </div>
+    </div>
+    <div class="phone-home"></div>
+  </div>
+
+  <div class="side-panel">
+    <h3>调用流程</h3>
+    <div class="step-list">
+      <div class="step-item" id="step1">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <div class="label">用户说话</div>
+          <div class="desc">自然语言触发，无需打开任何 App</div>
+        </div>
+      </div>
+      <div class="step-item" id="step2">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <div class="label">小跃识别意图</div>
+          <div class="desc">理解你想要什么</div>
+        </div>
+      </div>
+      <div class="step-item" id="step3">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <div class="label">调用咪咕 SDK <span class="tag tag-sdk">SDK</span></div>
+          <div class="desc">后台静默调起音乐</div>
+        </div>
+      </div>
+      <div class="step-item" id="step4">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <div class="label">直接播放 <span class="tag tag-migu">咪咕音乐</span></div>
+          <div class="desc">4000万+ 正版曲库直接播放</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preset-btns">
+      <p>快速体验，点击发送：</p>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="usePreset('播放周杰伦的歌')">
+          <i class="ti ti-music"></i>播放周杰伦的歌
+        </button>
+        <button class="preset-btn" onclick="usePreset('来首适合专注工作的纯音乐')">
+          <i class="ti ti-headphones"></i>专注工作的纯音乐
+        </button>
+        <button class="preset-btn" onclick="usePreset('这段旋律是什么歌？')">
+          <i class="ti ti-microphone"></i>这段旋律是什么歌
+        </button>
+        <button class="preset-btn" onclick="usePreset('推荐一首最近的热门新歌')">
+          <i class="ti ti-trending-up"></i>推荐热门新歌
+        </button>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetDemo()">
+      <i class="ti ti-refresh"></i> 重置 Demo
+    </button>
+  </div>
+</div>
+
+<script>
+const songs = {
+  '周杰伦': { emoji: '🎵', title: '晴天', artist: '周杰伦', color: '#2D1B69' },
+  '专注':   { emoji: '🎧', title: 'Forest Rain', artist: '纯音乐', color: '#0A3D2E' },
+  '旋律':   { emoji: '🎶', title: '已识别：七里香', artist: '周杰伦', color: '#2D1B69' },
+  '热门':   { emoji: '🔥', title: '起风了', artist: '买辣椒也用券', color: '#3D1A0A' },
+};
+
+let playing = false;
+let progressTimer = null;
+let currentProgress = 0;
+let isRunning = false;
+
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+}
+
+function addMsg(text, type, delay) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const msgs = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'msg ' + type;
+      div.textContent = text;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      resolve();
+    }, delay);
+  });
+}
+
+function addThinking(delay) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const msgs = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'msg thinking';
+      div.id = 'thinking';
+      div.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      resolve();
+    }, delay);
+  });
+}
+
+function removeThinking() {
+  const t = document.getElementById('thinking');
+  if (t) t.remove();
+}
+
+function addMusicCard(key, delay) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      removeThinking();
+      const song = songs[key];
+      const msgs = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'music-card';
+      div.innerHTML = `
+        <div class="music-card-inner">
+          <div class="album-art" style="background:${song.color}">${song.emoji}</div>
+          <div class="song-info">
+            <div class="title">${song.title}</div>
+            <div class="artist">${song.artist}</div>
+            <div class="source">● 咪咕音乐 · 正版</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+        <div class="player-controls">
+          <i class="ti ti-player-skip-back"></i>
+          <button class="play-btn" onclick="togglePlay()">
+            <i class="ti ti-player-pause" id="playIcon"></i>
+          </button>
+          <i class="ti ti-player-skip-forward"></i>
+        </div>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      startProgress();
+      resolve();
+    }, delay);
+  });
+}
+
+function startProgress() {
+  playing = true;
+  currentProgress = 0;
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    if (!playing) return;
+    currentProgress += 0.5;
+    if (currentProgress >= 100) currentProgress = 0;
+    const fill = document.getElementById('progFill');
+    if (fill) fill.style.width = currentProgress + '%';
+  }, 100);
+}
+
+function togglePlay() {
+  playing = !playing;
+  const icon = document.getElementById('playIcon');
+  if (icon) icon.className = playing ? 'ti ti-player-pause' : 'ti ti-player-play';
+}
+
+function detectIntent(text) {
+  if (text.includes('周杰伦')) return '周杰伦';
+  if (text.includes('专注') || text.includes('纯音乐') || text.includes('工作')) return '专注';
+  if (text.includes('旋律') || text.includes('什么歌') || text.includes('识别')) return '旋律';
+  if (text.includes('热门') || text.includes('新歌') || text.includes('推荐')) return '热门';
+  return null;
+}
+
+async function runFlow(text) {
+  if (isRunning) return;
+  isRunning = true;
+  document.getElementById('userInput').disabled = true;
+
+  const intent = detectIntent(text);
+  setStep(1);
+  await addMsg(text, 'user', 0);
+
+  if (!intent) {
+    await addThinking(400);
+    await new Promise(r => setTimeout(r, 800));
+    removeThinking();
+    await addMsg('嗯... 我没太听懂你的意思 🤔 试试说「播放周杰伦的歌」或者「来首轻音乐」？', 'bot', 0);
+    setStep(0);
+    document.getElementById('userInput').disabled = false;
+    isRunning = false;
+    return;
+  }
+
+  setStep(2);
+  await addThinking(500);
+  await new Promise(r => setTimeout(r, 600));
+  removeThinking();
+
+  setStep(3);
+  await new Promise(r => setTimeout(r, 500));
+
+  setStep(4);
+  await addMusicCard(intent, 300);
+
+  const labels = {
+    '周杰伦': '找到啦～ 周杰伦的歌来了，enjoy 🎵',
+    '专注':   '给你挑了一首超适合专注的曲子，进入心流状态吧 🌊',
+    '旋律':   '哼哼哼，这首我认出来了！为你播放 🎶',
+    '热门':   '这首最近街上都在播，品味不错哦 🔥',
+  };
+  await addMsg(labels[intent], 'bot', 600);
+
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('step' + i).classList.remove('active');
+    document.getElementById('step' + i).classList.add('done');
+  }
+
+  document.getElementById('userInput').disabled = false;
+  isRunning = false;
+}
+
+function sendMsg() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  runFlow(text);
+}
+
+function usePreset(text) {
+  document.getElementById('userInput').value = text;
+  sendMsg();
+}
+
+function resetDemo() {
+  clearInterval(progressTimer);
+  playing = false;
+  isRunning = false;
+  currentProgress = 0;
+  document.getElementById('messages').innerHTML = '<div class="msg bot">嗨～ 我是小跃，想听什么？跟我说就行 🎧</div>';
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('step' + i).classList.remove('active', 'done');
+  }
+  document.getElementById('userInput').disabled = false;
+  document.getElementById('userInput').value = '';
+}
+
+document.getElementById('userInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMsg();
+});
+</script>
+</body>
+</html>
